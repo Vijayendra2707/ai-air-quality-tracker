@@ -88,7 +88,7 @@ function getAQI(){
 });
 
         // Load History
-        loadHistory();
+        loadHistory(city);
 
         // 🔥 Load Heatmap (ONLY HERE)
         loadHeatmap(city);
@@ -98,9 +98,9 @@ function getAQI(){
 
 
 /* ---------------- LOAD HISTORY ---------------- */
-function loadHistory(){
+function loadHistory(city){
 
-    fetch("/api/history/")
+    fetch(`/api/history/?city=${city}`)
     .then(r => r.json())
     .then(historyData => {
 
@@ -108,34 +108,55 @@ function loadHistory(){
             trendChart.destroy();
         }
 
+        const history = historyData.history;
+        const forecast = historyData.forecast;
+
         trendChart = new Chart(document.getElementById("trendChart"), {
-    type: "line",
-    data: {
-        labels: historyData.history.map((_, i) => i + 1),
-        datasets: [
-            {
-                label: "History",
-                data: historyData.history
-            },
-            {
-                label: "Forecast",
-                data: [
-                    ...historyData.history,
-                    historyData.forecast
+            type: "line",
+            data: {
+                labels: [
+                    ...history.map((_, i) => "Day " + (i + 1)),
+                    "Next Day"
+                ],
+                datasets: [
+                    {
+                        label: "Historical AQI",
+                        data: history,
+                        borderColor: "blue",
+                        backgroundColor: "blue",
+                        fill: false,
+                        tension: 0.3
+                    },
+                {
+    label: "Predicted AQI",
+    data: [
+        ...history,
+        forecast
+    ],
+    borderColor: "red",
+    borderDash: [6,6],
+    fill: false,
+    tension: 0.3
+}
+
+
                 ]
+            },
+            options:{
+                responsive:true,
+                maintainAspectRatio:false,
+                plugins:{
+                    legend:{
+                        display:true
+                    }
+                },
+                scales:{
+                    y:{
+                        beginAtZero:true
+                    }
+                }
             }
-        ]
-    },
-    options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        scales:{
-            y:{
-                beginAtZero:true
-            }
-        }
-    }
-});
+        });
 
     });
 }
@@ -151,36 +172,35 @@ function loadHeatmap(city){
         map.setView([data.center_lat, data.center_lon], 12);
 
         let heatPoints = data.zones.map(zone => [
-            zone.lat,
-            zone.lon,
-            Math.min(zone.aqi / 180, 1)   // Balanced scaling
-        ]);
+        zone.lat,
+        zone.lon,
+        Math.min(zone.aqi / 300, 1)  // realistic AQI max
+    ]);
+
 
         if (heatLayer !== null) {
             map.removeLayer(heatLayer);
         }
 
         heatLayer = L.heatLayer(heatPoints, {
-            radius: 85,         // Medium spread
-            blur: 20,           // Less blur = darker center
-            maxZoom: 17,
-            minOpacity: 0.5,    // Slightly stronger visibility
+            radius: 45,          // Smaller radius = realistic density
+            blur: 35,            // More blur = smooth blending
+            maxZoom: 18,
+            minOpacity: 0.4,
+            max: 300,            // Max AQI scale
             gradient: {
-                0.1: '#00cc00',   // green
-                0.3: '#ffeb3b',   // yellow
-                0.5: '#ff9800',   // orange
-                0.7: '#f44336',   // red
-                1.0: '#8b0000'    // dark red
+                0.0: '#2dc937',   // green
+                0.25: '#99c140',  // light green
+                0.4: '#e7b416',   // yellow
+                0.6: '#db7b2b',   // orange
+                0.8: '#cc3232',   // red
+                1.0: '#660000'    // deep maroon
             }
         }).addTo(map);
 
     });
 
 }
-
-
-/* ---------------- LOAD INITIAL HISTORY ONLY ---------------- */
-loadHistory();
 
 </script>
 

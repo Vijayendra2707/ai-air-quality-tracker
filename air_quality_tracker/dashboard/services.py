@@ -194,7 +194,7 @@ def analyze_routes(start_lat, start_lon, end_lat, end_lon):
     for route in data["routes"]:
 
         duration_sec = route["summary"]["duration"]
-        duration_min = round(duration_sec / 60, 2)
+        duration_min = round(duration_sec / 60,0)
 
         geometry = route["geometry"]
         decoded = polyline.decode(geometry)

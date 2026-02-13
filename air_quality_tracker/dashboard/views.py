@@ -49,10 +49,11 @@ def aqi_api(request):
     if not aqi_data:
         return JsonResponse({"error": "AQI fetch failed"}, status=500)
 
+    # ✅ SAVE API DATA HERE
     AQIHistory.objects.create(
         city=city,
-        lat=None,
-        lon=None,
+        lat=aqi_data.get("lat"),
+        lon=aqi_data.get("lon"),
         aqi=aqi_data["aqi"]
     )
 
@@ -77,20 +78,39 @@ def current_aqi_api(request):
 
 
 # ---------- HISTORY + FORECAST + ANOMALY ----------
-
 def history_api(request):
-    history = list(
-        AQIHistory.objects.values_list("aqi", flat=True)
+    city = request.GET.get("city")
+
+    if not city:
+        return JsonResponse({"error": "City required"}, status=400)
+
+    # Get last 30 records for that city only
+    records = (
+        AQIHistory.objects
+        .filter(city=city)
         .order_by("-timestamp")[:30]
     )
 
+    history = list(records.values_list("aqi", flat=True))
     history.reverse()
     history = [int(x) for x in history]
 
-    forecast_value = int(forecast(history)) if history else 0
-    anomalies_raw = detect(history)
-    anomalies = [int(x) for x in list(anomalies_raw)] if anomalies_raw is not None else []
+    if not history:
+        return JsonResponse({
+            "history": [],
+            "forecast": 0,
+            "anomaly": []
+        })
 
+    # Use your ML forecast module
+    forecast_value = int(forecast(history))
+    anomalies_raw = detect(history)
+
+    anomalies = (
+    [int(x) for x in anomalies_raw.tolist()]
+    if anomalies_raw is not None
+    else []
+    )
     return JsonResponse({
         "history": history,
         "forecast": forecast_value,
@@ -117,7 +137,8 @@ def heatmap_api(request):
     grid_points = []
 
     # Create 3x3 grid around city
-    offsets = [-0.08, -0.04, 0, 0.04, 0.08]
+    offsets = [-0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15]
+
 
     for lat_offset in offsets:
         for lon_offset in offsets:
@@ -183,22 +204,6 @@ def route_api(request):
         "fastest": fastest_exposure,
         "cleanest": clean_exposure
     })
-
-
-# ---------- INDOOR VS OUTDOOR ----------
-
-def indoor_api(request):
-    indoor = random.randint(20, 150)
-    outdoor = 100
-
-    suggestion = "Ventilate room" if indoor > outdoor else "Safe"
-
-    return JsonResponse({
-        "indoor": indoor,
-        "outdoor": outdoor,
-        "suggestion": suggestion
-    })
-
 
 # ---------- COMPARE CITIES ----------
 
