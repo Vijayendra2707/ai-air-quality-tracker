@@ -215,7 +215,6 @@ def compare_api(request):
         "current_category": current_data["category"],
         "city_category": city_data["category"]
     })
-
 def smart_route_api(request):
 
     start_lat = request.GET.get("start_lat")

@@ -1,6 +1,7 @@
 import requests
 from django.conf import settings
 import polyline
+import math
 def fetch_aqi(city=None, lat=None, lon=None):
 
     if city:
@@ -129,40 +130,116 @@ def calculate_exposure(avg_aqi, duration_seconds):
     hours = duration_seconds / 3600
     return avg_aqi * hours
 
+
+# ---------- Distance calculator ----------
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # km
+    dLat = math.radians(lat2 - lat1)
+    dLon = math.radians(lon2 - lon1)
+
+    a = math.sin(dLat/2)**2 + \
+        math.cos(math.radians(lat1)) * \
+        math.cos(math.radians(lat2)) * \
+        math.sin(dLon/2)**2
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return R * c
+
+
+# ---------- Smart Route Analyzer ----------
 def analyze_routes(start_lat, start_lon, end_lat, end_lon):
 
-    route_data = fetch_routes(start_lat, start_lon, end_lat, end_lon)
-
-    if not route_data:
+    try:
+        start_lat = float(start_lat)
+        start_lon = float(start_lon)
+        end_lat = float(end_lat)
+        end_lon = float(end_lon)
+    except ValueError:
         return None
 
-    routes = extract_route_points(route_data)
+    url = "https://api.openrouteservice.org/v2/directions/driving-car"
 
-    analyzed = []
+    headers = {
+        "Authorization": settings.ORS_API_KEY,
+        "Content-Type": "application/json"
+    }
 
-    for route in routes:
-        avg_aqi = calculate_route_aqi(route["coordinates"])
+    body = {
+        "coordinates": [
+            [start_lon, start_lat],
+            [end_lon, end_lat]
+        ],
+        "instructions": False,
+        "alternative_routes": {
+            "target_count": 2
+        }
+    }
 
-        if avg_aqi is None:
-            continue
-
-        exposure = calculate_exposure(avg_aqi, route["duration"])
-
-        analyzed.append({
-            "avg_aqi": avg_aqi,
-            "duration": route["duration"],
-            "distance": route["distance"],
-            "exposure": exposure,
-            "coordinates": route["coordinates"]
-        })
-
-    if not analyzed:
+    try:
+        response = requests.post(url, json=body, headers=headers, timeout=6)
+    except requests.exceptions.RequestException:
         return None
 
-    fastest = min(analyzed, key=lambda x: x["duration"])
-    cleanest = min(analyzed, key=lambda x: x["exposure"])
+    if response.status_code != 200:
+        return None
 
+    data = response.json()
+
+    fastest_route = None
+    cleanest_route = None
+
+    lowest_time = float("inf")
+    lowest_exposure = float("inf")
+
+    for route in data["routes"]:
+
+        duration_sec = route["summary"]["duration"]
+        duration_min = round(duration_sec / 60, 2)
+
+        geometry = route["geometry"]
+        decoded = polyline.decode(geometry)
+
+        coordinates = [[lat, lon] for lat, lon in decoded]
+
+        # ---------- Calculate AQI exposure ----------
+        total_exposure = 0
+        total_distance = 0
+
+        # Sample every 8th point (balance speed + accuracy)
+        step = max(1, len(coordinates) // 8)
+
+        for i in range(0, len(coordinates) - 1, step):
+
+            lat1, lon1 = coordinates[i]
+            lat2, lon2 = coordinates[i + 1]
+
+            distance = haversine(lat1, lon1, lat2, lon2)
+
+            zone = fetch_aqi(lat=lat1, lon=lon1)
+
+            if zone and zone["aqi"]:
+                total_exposure += zone["aqi"] * distance
+                total_distance += distance
+
+        avg_aqi = total_exposure / total_distance if total_distance else 500
+
+        # ---------- Fastest route ----------
+        if duration_min < lowest_time:
+            lowest_time = duration_min
+            fastest_route = {
+                "coordinates": coordinates,
+                "duration": duration_min
+            }
+
+        # ---------- Cleanest route ----------
+        if avg_aqi < lowest_exposure:
+            lowest_exposure = avg_aqi
+            cleanest_route = {
+                "coordinates": coordinates,
+                "avg_aqi": round(avg_aqi, 2)
+            }
+    print("Number of routes:", len(data["routes"]))
     return {
-        "fastest": fastest,
-        "cleanest": cleanest
+        "fastest": fastest_route,
+        "cleanest": cleanest_route
     }
