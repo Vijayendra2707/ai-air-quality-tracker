@@ -1,0 +1,38 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+header {
+    background: #1e88e5;
+    color: white;
+    padding: 20px;
+}
+
+.container {
+    padding: 30px;
+}
+
+.search-form input {
+    padding: 10px;
+    width: 220px;
+}
+
+.search-form button {
+    padding: 10px 15px;
+    background: green;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.results {
+    margin-top: 20px;
+}
+
+.error {
+    color: red;
+}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Smart Route Optimizer 🌿</h2>
+
+<input type="text" id="destination" placeholder="Enter destination">
+<button onclick="findRoute()">Find Best Route</button>
+
+<br><br>
+<div id="map" style="height: 500px;"></div>
+
+<h3 id="routeResult"></h3>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+let map = L.map('map').setView([18.52, 73.85], 12);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+.addTo(map);
+
+let fastestLayer = null;
+let cleanestLayer = null;
+
+function findRoute(){
+
+    navigator.geolocation.getCurrentPosition(function(position){
+
+        let start_lat = position.coords.latitude;
+        let start_lon = position.coords.longitude;
+
+        let destination = document.getElementById("destination").value;
+
+        if(!destination){
+            alert("Enter destination");
+            return;
+        }
+
+        // Convert destination to lat/lon
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${destination}`)
+        .then(r => r.json())
+        .then(geo => {
+
+            if(!geo.length){
+                alert("Destination not found");
+                return;
+            }
+
+            let end_lat = geo[0].lat;
+            let end_lon = geo[0].lon;
+
+            fetch(`/api/smart-route/?start_lat=${start_lat}&start_lon=${start_lon}&end_lat=${end_lat}&end_lon=${end_lon}`)
+            .then(r => r.json())
+            .then(data => {
+
+                if(data.error){
+                    alert(data.error);
+                    return;
+                }
+
+                if(fastestLayer) map.removeLayer(fastestLayer);
+                if(cleanestLayer) map.removeLayer(cleanestLayer);
+
+                fastestLayer = L.polyline(data.fastest.coordinates, {color:'blue'}).addTo(map);
+                cleanestLayer = L.polyline(data.cleanest.coordinates, {color:'green'}).addTo(map);
+
+                map.fitBounds(fastestLayer.getBounds());
+
+                document.getElementById("routeResult").innerText =
+                    "⚡ Fastest: " + data.fastest.duration + " mins | " +
+                    "🌿 Cleanest Avg AQI: " + data.cleanest.avg_aqi;
+            });
+
+        });
+
+    });
+
+}
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>AI Health Risk Prediction</h2>
+
+<input type="number" id="age" placeholder="Age"><br><br>
+<input type="number" id="humidity" placeholder="Humidity"><br><br>
+<input type="number" id="aqi" placeholder="Current AQI"><br><br>
+
+<label>Asthma:</label>
+<select id="asthma">
+    <option value="0">No</option>
+    <option value="1">Yes</option>
+</select><br><br>
+
+<label>Heart Condition:</label>
+<select id="heart">
+    <option value="0">No</option>
+    <option value="1">Yes</option>
+</select><br><br>
+
+<button onclick="predict()">Predict</button>
+
+<h3 id="result"></h3>
+
+<script>
+
+let currentAQI = null;
+let currentHumidity = null;
+
+// 1️⃣ Auto fetch AQI + humidity
+navigator.geolocation.getCurrentPosition(function(position){
+
+    fetch(`/api/current-aqi/?lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
+    .then(r => r.json())
+    .then(data => {
+
+        currentAQI = data.aqi;
+        currentHumidity = data.humidity;
+
+        document.getElementById("aqi").value = data.aqi;
+        document.getElementById("humidity").value = data.humidity;
+
+    });
+
+});
+
+// 2️⃣ Button click function
+function predict(){
+
+    let age = document.getElementById("age").value;
+    let asthma = document.getElementById("asthma").value;
+    let heart = document.getElementById("heart").value;
+
+    if (!age || age <= 0) {
+        document.getElementById("result").innerText =
+            "Please enter valid age.";
+        return;
+    }
+
+    if (currentAQI === null || currentHumidity === null) {
+        document.getElementById("result").innerText =
+            "Waiting for AQI data...";
+        return;
+    }
+
+    fetch(`/api/health/?aqi=${currentAQI}&humidity=${currentHumidity}&age=${age}&asthma=${asthma}&heart=${heart}`)
+    .then(r => r.json())
+    .then(result => {
+
+        document.getElementById("result").innerText =
+            "Risk Level: " + result.risk +
+            " | Recommendation: " + result.recommendation;
+
+    });
+
+}
+
+</script>
+
+{% endblock %}

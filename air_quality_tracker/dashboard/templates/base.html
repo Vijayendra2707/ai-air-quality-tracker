@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart AQI System</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+    <style>
+        body { font-family: Arial; margin: 0; background: #f4f6f8; }
+        nav { background: #1e88e5; padding: 10px; }
+        nav a { color: white; margin: 15px; text-decoration: none; }
+        h2 { text-align: center; }
+        .container { padding: 20px; }
+        button { padding: 8px 12px; }
+        input { padding: 8px; }
+        .aqi-good { color: green; }
+        .aqi-moderate { color: orange; }
+        .aqi-poor { color: red; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/">Dashboard</a>
+    <a href="/health/">Health</a>
+    <a href="/route/">Route</a>
+    <a href="/indoor/">Indoor</a>
+    <a href="/compare/">Compare AQI</a>
+
+</nav>
+
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>

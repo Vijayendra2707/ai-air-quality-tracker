@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Live AQI Dashboard</h2>
+
+<input type="text" id="city" placeholder="Enter City">
+<button onclick="getAQI()">Search</button>
+
+<h3 id="aqi-category"></h3>
+
+<canvas id="radarChart"></canvas>
+<canvas id="trendChart"></canvas>
+
+<div id="map" style="height:400px;margin-top:20px;"></div>
+<script>
+
+let radarChart = null;
+let trendChart = null;
+let heatLayer = null;
+
+/* ---------------- MAP INITIALIZATION ---------------- */
+let map = L.map('map').setView([20.5937, 78.9629], 5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+
+/* ---------------- MAIN SEARCH FUNCTION ---------------- */
+function getAQI(){
+
+    let city = document.getElementById("city").value;
+
+    if(!city){
+        alert("Please enter a city");
+        return;
+    }
+
+    fetch(`/api/aqi/?city=${city}`)
+    .then(r => r.json())
+    .then(data => {
+
+        if(data.error){
+            alert(data.error);
+            return;
+        }
+
+        // Update AQI text
+        document.getElementById("aqi-category").innerText =
+            `AQI: ${data.aqi} (${data.category})`;
+
+        // Radar Chart
+        if (radarChart !== null) {
+            radarChart.destroy();
+        }
+
+        radarChart = new Chart(document.getElementById("radarChart"), {
+            type: "radar",
+            data: {
+                labels: ["PM2.5","PM10","CO","NO2","O3"],
+                datasets: [{
+                    label: "Pollutants",
+                    data: [
+                        data.pm25,
+                        data.pm10,
+                        data.co,
+                        data.no2,
+                        data.o3
+                    ]
+                }]
+            }
+        });
+
+        // Load History
+        loadHistory();
+
+        // 🔥 Load Heatmap (ONLY HERE)
+        loadHeatmap(city);
+
+    });
+}
+
+
+/* ---------------- LOAD HISTORY ---------------- */
+function loadHistory(){
+
+    fetch("/api/history/")
+    .then(r => r.json())
+    .then(historyData => {
+
+        if (trendChart !== null) {
+            trendChart.destroy();
+        }
+
+        trendChart = new Chart(document.getElementById("trendChart"), {
+            type: "line",
+            data: {
+                labels: historyData.history.map((_, i) => i + 1),
+                datasets: [
+                    {
+                        label: "History",
+                        data: historyData.history
+                    },
+                    {
+                        label: "Forecast",
+                        data: [
+                            ...historyData.history,
+                            historyData.forecast
+                        ]
+                    }
+                ]
+            }
+        });
+
+    });
+}
+
+
+/* ---------------- LOAD HEATMAP ---------------- */
+function loadHeatmap(city){
+
+    fetch(`/api/heatmap/?city=${city}`)
+    .then(r => r.json())
+    .then(data => {
+
+        map.setView([data.center_lat, data.center_lon], 12);
+
+        let heatPoints = data.zones.map(zone => [
+            zone.lat,
+            zone.lon,
+            Math.min(zone.aqi / 180, 1)   // Balanced scaling
+        ]);
+
+        if (heatLayer !== null) {
+            map.removeLayer(heatLayer);
+        }
+
+        heatLayer = L.heatLayer(heatPoints, {
+            radius: 85,         // Medium spread
+            blur: 20,           // Less blur = darker center
+            maxZoom: 17,
+            minOpacity: 0.5,    // Slightly stronger visibility
+            gradient: {
+                0.1: '#00cc00',   // green
+                0.3: '#ffeb3b',   // yellow
+                0.5: '#ff9800',   // orange
+                0.7: '#f44336',   // red
+                1.0: '#8b0000'    // dark red
+            }
+        }).addTo(map);
+
+    });
+
+}
+
+
+/* ---------------- LOAD INITIAL HISTORY ONLY ---------------- */
+loadHistory();
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Current Location AQI vs Selected City AQI</h2>
+
+<input type="text" id="city" placeholder="Enter City Name">
+<button onclick="compare()">Compare</button>
+
+<h3 id="result"></h3>
+
+<canvas id="compareChart"></canvas>
+
+<script>
+let compareChart = null;
+
+function compare(){
+
+    navigator.geolocation.getCurrentPosition(function(position){
+
+        let city = document.getElementById("city").value;
+
+        fetch(`/api/compare/?lat=${position.coords.latitude}&lon=${position.coords.longitude}&city=${city}`)
+        .then(r=>r.json())
+        .then(data=>{
+
+            console.log(data); // DEBUG
+
+            if(compareChart){
+                compareChart.destroy();
+            }
+
+            compareChart = new Chart(document.getElementById("compareChart"),{
+                type:"bar",
+                data:{
+                    labels:["Current Location","Selected City"],
+                    datasets:[{
+                        label:"AQI Comparison",
+                        data:[data.current_aqi, data.city_aqi]
+                    }]
+                }
+            });
+
+            let worse =
+                data.current_aqi > data.city_aqi
+                ? "Your location has worse air quality"
+                : "Selected city has worse air quality";
+
+            document.getElementById("result").innerText = worse;
+
+        });
+
+    });
+
+}
+</script>
+
+{% endblock %}
