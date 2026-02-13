@@ -1,0 +1,28 @@
+# 🌍 AI-Based Smart Air Quality Tracker
+
+An intelligent environmental monitoring system built using Django, Leaflet.js, and Machine Learning.
+
+## Features
+- Live AQI Dashboard
+- Zonal Heatmap Visualization
+- AQI Forecasting
+- AI Health Risk Prediction
+- Smart Route Optimizer
+- Indoor vs Outdoor AQI Comparison
+- Anomaly Detection
+
+## Tech Stack
+- Django (Backend)
+- HTML, CSS, JavaScript
+- Leaflet.js
+- Chart.js
+- scikit-learn
+- AQICN API
+
+## Setup
+1. Clone repo
+2. Create virtual environment
+3. Install requirements
+4. Add API key in .env
+5. Run server
+
