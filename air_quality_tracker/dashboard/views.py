@@ -1,18 +1,31 @@
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 from django.http import JsonResponse
 from .models import AQIHistory, RouteHistory
 from .services import fetch_aqi , analyze_routes
 from .ml.forecast import forecast
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib import messages
 from .ml.health import predict_health
 from .ml.anomaly import detect
+from django.contrib.auth.decorators import login_required
 import random
 
+def register(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Account created successfully!")
+            return redirect("login")
+    else:
+        form = UserCreationForm()
+
+    return render(request, "register.html", {"form": form})
 
 # ---------- PAGES ----------
-
+@login_required
 def dashboard(request):
     return render(request, "index.html")
-
 def health_page(request):
     return render(request, "health.html")
 

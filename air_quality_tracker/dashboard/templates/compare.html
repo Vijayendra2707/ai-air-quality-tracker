@@ -7,8 +7,9 @@
 <button onclick="compare()">Compare</button>
 
 <h3 id="result"></h3>
-
-<canvas id="compareChart"></canvas>
+<div style="width: 95%; max-width: 1100px; height: 400px ; margin: 40px auto;">
+    <canvas id="compareChart"></canvas>
+</div>
 
 <script>
 let compareChart = null;
@@ -30,15 +31,24 @@ function compare(){
             }
 
             compareChart = new Chart(document.getElementById("compareChart"),{
-                type:"bar",
-                data:{
-                    labels:["Current Location","Selected City"],
-                    datasets:[{
-                        label:"AQI Comparison",
-                        data:[data.current_aqi, data.city_aqi]
-                    }]
-                }
-            });
+    type:"bar",
+    data:{
+        labels:["Current Location","Selected City"],
+        datasets:[{
+            label:"AQI Comparison",
+            data:[data.current_aqi, data.city_aqi]
+        }]
+    },
+    options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        scales:{
+            y:{
+                beginAtZero:true
+            }
+        }
+    }
+});
 
             let worse =
                 data.current_aqi > data.city_aqi

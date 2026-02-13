@@ -1,17 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Live AQI Dashboard</h2>
+<div id="top-dashboard">
+    <h2>Live AQI Dashboard</h2>
 
-<input type="text" id="city" placeholder="Enter City">
-<button onclick="getAQI()">Search</button>
+    <input type="text" id="city" placeholder="Enter City">
+    <button onclick="getAQI()">Search</button>
 
-<h3 id="aqi-category"></h3>
+    <h3 id="aqi-category"></h3>
+</div>
+<!-- Radar Chart -->
+<div style="width: 95%; max-width: 700px; height: 450px; margin: 40px auto;">
+    <canvas id="radarChart"></canvas>
+</div>
 
-<canvas id="radarChart"></canvas>
-<canvas id="trendChart"></canvas>
+<!-- History Chart -->
+<div style="width: 95%; max-width: 1100px; height: 500px; margin: 40px auto;">
+    <canvas id="trendChart"></canvas>
+</div>
 
-<div id="map" style="height:400px;margin-top:20px;"></div>
+<!-- Heatmap -->
+<div style="width: 95%; max-width: 1100px; height: 550px; margin: 40px auto;">
+    <div id="map" style="height:100%; width:100%;"></div>
+</div>
+
 <script>
 
 let radarChart = null;
@@ -55,21 +67,25 @@ function getAQI(){
         }
 
         radarChart = new Chart(document.getElementById("radarChart"), {
-            type: "radar",
-            data: {
-                labels: ["PM2.5","PM10","CO","NO2","O3"],
-                datasets: [{
-                    label: "Pollutants",
-                    data: [
-                        data.pm25,
-                        data.pm10,
-                        data.co,
-                        data.no2,
-                        data.o3
-                    ]
-                }]
-            }
-        });
+    type: "radar",
+    data: {
+        labels: ["PM2.5","PM10","CO","NO2","O3"],
+        datasets: [{
+            label: "Pollutants",
+            data: [
+                data.pm25,
+                data.pm10,
+                data.co,
+                data.no2,
+                data.o3
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
 
         // Load History
         loadHistory();
@@ -93,24 +109,33 @@ function loadHistory(){
         }
 
         trendChart = new Chart(document.getElementById("trendChart"), {
-            type: "line",
-            data: {
-                labels: historyData.history.map((_, i) => i + 1),
-                datasets: [
-                    {
-                        label: "History",
-                        data: historyData.history
-                    },
-                    {
-                        label: "Forecast",
-                        data: [
-                            ...historyData.history,
-                            historyData.forecast
-                        ]
-                    }
+    type: "line",
+    data: {
+        labels: historyData.history.map((_, i) => i + 1),
+        datasets: [
+            {
+                label: "History",
+                data: historyData.history
+            },
+            {
+                label: "Forecast",
+                data: [
+                    ...historyData.history,
+                    historyData.forecast
                 ]
             }
-        });
+        ]
+    },
+    options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        scales:{
+            y:{
+                beginAtZero:true
+            }
+        }
+    }
+});
 
     });
 }

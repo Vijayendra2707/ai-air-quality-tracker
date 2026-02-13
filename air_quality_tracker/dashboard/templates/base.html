@@ -30,6 +30,17 @@
     <a href="/route/">Route</a>
     <a href="/indoor/">Indoor</a>
     <a href="/compare/">Compare AQI</a>
+{% if user.is_authenticated %}
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" 
+            style="background:none;border:none;color:white;font-weight:bold;cursor:pointer;">
+            Logout
+        </button>
+    </form>
+{% else %}
+    <a href="{% url 'login' %}">Login</a>
+{% endif %}
 
 </nav>
 
@@ -38,4 +49,55 @@
 </div>
 
 </body>
+<style>
+    body { 
+        font-family: Arial; 
+        margin: 0; 
+        background: #f4f6f8; 
+    }
+
+    /* 🔵 STICKY BLUE NAVBAR */
+    nav { 
+        background: #1e88e5; 
+        padding: 12px 0; 
+        position: sticky;   /* Makes it sticky */
+        top: 0;             /* Stick at top */
+        z-index: 1000;      /* Stay above charts/map */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        text-align: center;
+    }
+
+    nav a { 
+        color: white; 
+        margin: 0 18px; 
+        text-decoration: none; 
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    nav a:hover {
+        text-decoration: underline;
+    }
+
+    h2 { 
+        text-align: center; 
+    }
+
+    .container { 
+        padding: 20px; 
+    }
+
+    button { 
+        padding: 8px 12px; 
+    }
+
+    input { 
+        padding: 8px; 
+    }
+
+    .aqi-good { color: green; }
+    .aqi-moderate { color: orange; }
+    .aqi-poor { color: red; }
+</style>
+
 </html>
